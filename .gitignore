@@ -1,2 +1,34 @@
+# Claude Code local config
 .claude/
+
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Swift / Xcode build artifacts
+.build/
+.swiftpm/
+DerivedData/
+*.o
+*.dSYM/
+*.dSYM.zip
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# Ad-hoc compiled binaries if swiftc/build.sh is run in-place
+TailscaleNAS
+TailscaleNAS.app/
+IconGen
+!AppIcon.icns
+
+# Editor swap/backup files
+*.swp
+*~
+
+# Local runtime state (should live under ~/Library, never in the repo)
+*.log
+state.json
+hosts.json
