@@ -1,0 +1,16 @@
+[
+  {
+    "id": "nas1",
+    "name": "nas1",
+    "tsHost": "nas1.example-tailnet.ts.net",
+    "path": "homes/user.ts/TimeMachine",
+    "username": "user.ts"
+  },
+  {
+    "id": "nas2",
+    "name": "nas2",
+    "tsHost": "nas2.example-tailnet.ts.net",
+    "path": "homes/user.ts",
+    "username": "user.ts"
+  }
+]
