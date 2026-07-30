@@ -4,7 +4,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>fr.arnaud.tailscale-nas-menubar</string>
+    <string>com.tailscale-nas-watchdog.menubar</string>
     <key>ProgramArguments</key>
     <array>
         <string>__HOME__/Applications/TailscaleNAS.app/Contents/MacOS/TailscaleNAS</string>

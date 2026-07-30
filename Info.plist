@@ -6,7 +6,7 @@
     <key>CFBundleName</key>
     <string>TailscaleNAS</string>
     <key>CFBundleIdentifier</key>
-    <string>fr.arnaud.tailscale-nas</string>
+    <string>com.tailscale-nas-watchdog.app</string>
     <key>CFBundleExecutable</key>
     <string>TailscaleNAS</string>
     <key>CFBundleVersion</key>

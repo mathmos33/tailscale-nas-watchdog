@@ -19,9 +19,9 @@ Contrairement à l'ancienne version (`~/Downloads/tailscale/mount tailscale/`), 
 |---|---|
 | `watchdog.sh` | `~/Library/Application Support/TailscaleNAS/bin/watchdog.sh` |
 | `default-hosts.json` | copié vers `~/Library/Application Support/TailscaleNAS/hosts.json` **seulement s'il n'existe pas déjà** (ne casse jamais tes modifs) |
-| `fr.arnaud.tailscale-nas-watchdog.plist` | `~/Library/LaunchAgents/` (le placeholder `__HOME__` est remplacé par ton `$HOME` réel à l'install, donc portable d'une machine/d'un compte à l'autre) |
+| `com.tailscale-nas-watchdog.watchdog.plist` | `~/Library/LaunchAgents/` (le placeholder `__HOME__` est remplacé par ton `$HOME` réel à l'install, donc portable d'une machine/d'un compte à l'autre) |
 | `TailscaleNASApp.swift` + `Info.plist` + `AppIcon.icns` | compilés/assemblés par `build.sh` vers `~/Applications/TailscaleNAS.app` |
-| `fr.arnaud.tailscale-nas-menubar.plist` | `~/Library/LaunchAgents/` (même substitution `__HOME__`) |
+| `com.tailscale-nas-watchdog.menubar.plist` | `~/Library/LaunchAgents/` (même substitution `__HOME__`) |
 
 `IconGen.swift` + `AppIcon.iconset/` sont les sources de l'icône (même symbole que la barre de menu, blanc sur gris) — `AppIcon.icns` est déjà généré et versionné dans ce dossier, pas besoin de relancer `IconGen.swift` sauf si tu veux changer l'icône.
 
@@ -37,7 +37,7 @@ bash install.sh
 1. Installe **Homebrew** s'il manque (peut demander ton mot de passe pour créer `/opt/homebrew`), puis **`jq`** via `brew install jq` s'il manque.
 2. Copie `watchdog.sh` en espace utilisateur.
 3. Sème `hosts.json` avec `default-hosts.json` si absent (ne touche jamais un `hosts.json` existant).
-4. Désactive l'ancien LaunchAgent (`fr.arnaud.mount-tm-nas`), installe le nouveau (`fr.arnaud.tailscale-nas-watchdog`).
+4. Désactive les anciens LaunchAgents (`fr.arnaud.mount-tm-nas` et, pour une mise à jour depuis une version antérieure, `fr.arnaud.tailscale-nas-watchdog`/`fr.arnaud.tailscale-nas-menubar`), installe le nouveau (`com.tailscale-nas-watchdog.watchdog`).
 5. Appelle `build.sh` (compile + signe ad-hoc l'app — voir vérifications ci-dessous, échoue proprement si Xcode CLT manque).
 6. Installe et charge le LaunchAgent de l'app barre de menu.
 
@@ -72,7 +72,7 @@ Le champ **Chemin** est la partie de l'URL SMB après `utilisateur@hôte/` — p
 Cliquer "Quitter" dans le menu ferme vraiment l'app (ça n'affecte ni les montages ni le watchdog, qui tournent indépendamment). Pour la relancer :
 
 - Double-clic sur `~/Applications/TailscaleNAS.app` dans le Finder, ou
-- `launchctl kickstart -k gui/$(id -u)/fr.arnaud.tailscale-nas-menubar` — méthode la plus fiable, contourne Finder/Launch Services.
+- `launchctl kickstart -k gui/$(id -u)/com.tailscale-nas-watchdog.menubar` — méthode la plus fiable, contourne Finder/Launch Services.
 - Sinon, au prochain login/redémarrage, `RunAtLoad` la relance automatiquement.
 
 ## Notes de build (si tu recompiles après une mise à jour de macOS)
@@ -85,7 +85,7 @@ Sans signature ad-hoc, Finder refuse carrément de lancer l'app (icône barrée 
 
 ```bash
 # Les deux LaunchAgents sont chargés ?
-launchctl list | grep arnaud
+launchctl list | grep tailscale-nas-watchdog
 
 # Journal en direct (persiste entre reboots, contrairement à /tmp)
 tail -f ~/Library/Logs/TailscaleNAS/watchdog.log
@@ -123,10 +123,10 @@ Si `⚠︎ Ré-authentification Tailscale requise` apparaît dans le menu, c'est
 ## Désinstallation
 
 ```bash
-launchctl unload ~/Library/LaunchAgents/fr.arnaud.tailscale-nas-watchdog.plist
-launchctl unload ~/Library/LaunchAgents/fr.arnaud.tailscale-nas-menubar.plist
-rm ~/Library/LaunchAgents/fr.arnaud.tailscale-nas-watchdog.plist
-rm ~/Library/LaunchAgents/fr.arnaud.tailscale-nas-menubar.plist
+launchctl unload ~/Library/LaunchAgents/com.tailscale-nas-watchdog.watchdog.plist
+launchctl unload ~/Library/LaunchAgents/com.tailscale-nas-watchdog.menubar.plist
+rm ~/Library/LaunchAgents/com.tailscale-nas-watchdog.watchdog.plist
+rm ~/Library/LaunchAgents/com.tailscale-nas-watchdog.menubar.plist
 rm -rf ~/Applications/TailscaleNAS.app
 rm -rf ~/Library/Application\ Support/TailscaleNAS
 rm -rf ~/Library/Logs/TailscaleNAS

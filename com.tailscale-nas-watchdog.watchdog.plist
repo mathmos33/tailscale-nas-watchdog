@@ -4,7 +4,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>fr.arnaud.tailscale-nas-watchdog</string>
+    <string>com.tailscale-nas-watchdog.watchdog</string>
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
