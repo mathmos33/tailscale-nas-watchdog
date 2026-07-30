@@ -33,7 +33,7 @@ else
     echo "==> Removing watchdog.sh binary and cached state, keeping hosts.json"
     rm -f "$APP_SUPPORT/bin/watchdog.sh"
     rmdir "$APP_SUPPORT/bin" 2>/dev/null || true
-    rm -f "$APP_SUPPORT/state.json" "$APP_SUPPORT/.last_auth_warning" "$APP_SUPPORT/.caffeinate.pid"
+    rm -f "$APP_SUPPORT/state.json" "$APP_SUPPORT/.last_auth_warning" "$APP_SUPPORT/.caffeinate.pid" "$APP_SUPPORT/.last_boot"
     echo "    (hosts.json kept at: $APP_SUPPORT/hosts.json — rerun with --purge to remove it too)"
 fi
 

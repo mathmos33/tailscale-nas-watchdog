@@ -140,6 +140,6 @@ Les volumes déjà montés et les identifiants dans le Trousseau ne sont pas tou
 - Si Tailscale n'est pas `Running` et qu'aucune ré-authentification n'est requise → tentative de reconnexion (`tailscale up`).
 - Si un serveur est joignable mais pas monté → montage.
 - Si un partage est monté mais que le serveur n'est plus joignable → démontage forcé (montage fantôme nettoyé), puis remontage dès que possible.
-- Log dans `~/Library/Logs/TailscaleNAS/watchdog.log` (rotation automatique au-delà de ~5 Mo).
+- Log dans `~/Library/Logs/TailscaleNAS/watchdog.log`, réinitialisé à chaque redémarrage du Mac (détecté via `sysctl kern.boottime`, comparé à `~/Library/Application Support/TailscaleNAS/.last_boot` — donc un simple `launchctl kickstart`/reinstall ne le vide pas, seul un vrai reboot le fait), et sinon rotation automatique au-delà de ~5 Mo dans la même session.
 - Si une sauvegarde Time Machine est en cours (`tmutil status`), un `caffeinate -s -i` est maintenu actif pour bloquer la veille système ; son PID est suivi dans `~/Library/Application Support/TailscaleNAS/.caffeinate.pid` et il est arrêté dès que la sauvegarde se termine.
 - L'app ne peut tourner qu'en une seule instance à la fois (elle se ferme toute seule si une autre copie est déjà lancée — évite les doublons d'icône si tu double-cliques dessus alors que le LaunchAgent la fait déjà tourner).

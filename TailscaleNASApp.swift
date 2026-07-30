@@ -363,7 +363,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openInFinder(_ sender: NSMenuItem) {
         guard let path = sender.representedObject as? String, !path.isEmpty else { return }
-        NSWorkspace.shared.open(URL(fileURLWithPath: path))
+        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
     }
 
     @objc private func viewLog() {

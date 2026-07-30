@@ -11,6 +11,7 @@ LOG_DIR="$HOME/Library/Logs/TailscaleNAS"
 LOG_FILE="$LOG_DIR/watchdog.log"
 LAST_WARN_FILE="$APP_SUPPORT/.last_auth_warning"
 CAFFEINATE_PID_FILE="$APP_SUPPORT/.caffeinate.pid"
+LAST_BOOT_FILE="$APP_SUPPORT/.last_boot"
 AUTH_WARN_INTERVAL=600
 LOG_MAX_BYTES=$((5 * 1024 * 1024))
 
@@ -31,6 +32,16 @@ find_mount_line() {
     fi
     echo "$line"
 }
+
+# --- reset log on new boot session (RunAtLoad fires on every launchctl
+# load/kickstart too, so we compare against the kernel's actual boot time
+# rather than assuming "we just ran" means "the Mac just started") ---
+current_boot=$(sysctl -n kern.boottime 2>/dev/null | grep -oE '[0-9]+' | head -1)
+if [ -n "$current_boot" ] && [ "$(cat "$LAST_BOOT_FILE" 2>/dev/null)" != "$current_boot" ]; then
+    : >"$LOG_FILE"
+    echo "$current_boot" >"$LAST_BOOT_FILE"
+    log "Log reset: new boot session (kern.boottime=$current_boot)"
+fi
 
 # --- log rotation ---
 if [ -f "$LOG_FILE" ]; then
