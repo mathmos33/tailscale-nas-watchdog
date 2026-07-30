@@ -123,14 +123,16 @@ Si `⚠︎ Ré-authentification Tailscale requise` apparaît dans le menu, c'est
 ## Désinstallation
 
 ```bash
-launchctl unload ~/Library/LaunchAgents/com.tailscale-nas-watchdog.watchdog.plist
-launchctl unload ~/Library/LaunchAgents/com.tailscale-nas-watchdog.menubar.plist
-rm ~/Library/LaunchAgents/com.tailscale-nas-watchdog.watchdog.plist
-rm ~/Library/LaunchAgents/com.tailscale-nas-watchdog.menubar.plist
-rm -rf ~/Applications/TailscaleNAS.app
-rm -rf ~/Library/Application\ Support/TailscaleNAS
-rm -rf ~/Library/Logs/TailscaleNAS
+bash uninstall.sh
 ```
+
+Décharge et supprime les deux LaunchAgents (+ les anciens `fr.arnaud.*` s'ils traînent encore), supprime l'app et les logs. Par défaut, **`hosts.json` est conservé** (au cas où tu réinstalles plus tard) ; pour tout purger y compris ta config de serveurs :
+
+```bash
+bash uninstall.sh --purge
+```
+
+Les volumes déjà montés et les identifiants dans le Trousseau ne sont pas touchés — démonte-les et retire-les toi-même si besoin.
 
 ## Comportement
 
