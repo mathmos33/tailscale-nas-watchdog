@@ -2,11 +2,12 @@
 
 ## Prérequis réels
 
-- **macOS 11 (Big Sur) ou plus récent** — pas de limite haute, ça tourne sur n'importe quelle version au-dessus (testé sur macOS 27.0 bêta). `build.sh` compile avec `-target arm64-apple-macosx11.0`, donc large marge volontaire.
-- **Apple Silicon (arm64)** — le binaire n'est PAS universel (pas de code pour Intel/x86_64). Sur un Mac Intel il faudrait ajouter `-target x86_64-apple-macosx11.0` et fusionner avec `lipo`, non fait ici car inutile pour cette machine.
-- **`jq`** installé (`brew install jq`, déjà présent ici via Homebrew) — `watchdog.sh` en dépend pour lire/écrire les JSON ; sans lui le script s'arrête proprement avec une erreur explicite dans le journal.
-- **Tailscale.app** installé dans `/Applications/` (ou `tailscale` sur le `PATH`).
-- **Identifiants SMB déjà enregistrés dans le Trousseau** (`user.ts@...`) — c'est le cas ici suite aux montages manuels précédents ; sur une machine neuve il faudrait monter une première fois à la main pour que macOS propose de sauvegarder le mot de passe.
+- **macOS 11 (Big Sur) ou plus récent** — pas de limite haute, ça tourne sur n'importe quelle version au-dessus (testé sur macOS 27.0 bêta).
+- **Apple Silicon (arm64) ou Intel (x86_64)** — `build.sh` détecte l'architecture (`uname -m`) et choisit automatiquement le bon `-target` pour `swiftc`. Le binaire produit n'est PAS universel (pas de `lipo`), mais compile nativement sur les deux familles.
+- **Xcode Command Line Tools** (pour `swiftc`) — `build.sh` vérifie sa présence et s'arrête avec un message clair (`xcode-select --install`) si absent ; c'est la seule étape qui reste manuelle car l'installation ouvre une fenêtre GUI et ne peut pas être scriptée jusqu'au bout.
+- **Homebrew et `jq`** — `install.sh` les installe automatiquement s'ils manquent (Homebrew via son script officiel en mode `NONINTERACTIVE`, puis `brew install jq`). Rien à faire à la main sauf si tu préfères les installer toi-même avant.
+- **Tailscale.app** installé dans `/Applications/` (ou `tailscale` sur le `PATH`) — **non automatisé**, à installer manuellement avant `install.sh`.
+- **Identifiants SMB enregistrés dans le Trousseau** — sur une machine neuve, il faut monter chaque partage une première fois à la main (Finder → `Aller → Se connecter au serveur…` → `smb://utilisateur@hôte/chemin`) pour que macOS propose de sauvegarder le mot de passe. Le watchdog ne gère pas l'authentification initiale, seulement le montage/remontage une fois les identifiants connus du système.
 
 Montage automatique et auto-réparé des partages SMB sur `nas1`/`nas2` via Tailscale, avec une icône dans la barre de menu pour vérifier/forcer le montage avant une sauvegarde Time Machine.
 
@@ -18,9 +19,9 @@ Contrairement à l'ancienne version (`~/Downloads/tailscale/mount tailscale/`), 
 |---|---|
 | `watchdog.sh` | `~/Library/Application Support/TailscaleNAS/bin/watchdog.sh` |
 | `default-hosts.json` | copié vers `~/Library/Application Support/TailscaleNAS/hosts.json` **seulement s'il n'existe pas déjà** (ne casse jamais tes modifs) |
-| `fr.arnaud.tailscale-nas-watchdog.plist` | `~/Library/LaunchAgents/` |
+| `fr.arnaud.tailscale-nas-watchdog.plist` | `~/Library/LaunchAgents/` (le placeholder `__HOME__` est remplacé par ton `$HOME` réel à l'install, donc portable d'une machine/d'un compte à l'autre) |
 | `TailscaleNASApp.swift` + `Info.plist` + `AppIcon.icns` | compilés/assemblés par `build.sh` vers `~/Applications/TailscaleNAS.app` |
-| `fr.arnaud.tailscale-nas-menubar.plist` | `~/Library/LaunchAgents/` |
+| `fr.arnaud.tailscale-nas-menubar.plist` | `~/Library/LaunchAgents/` (même substitution `__HOME__`) |
 
 `IconGen.swift` + `AppIcon.iconset/` sont les sources de l'icône (même symbole que la barre de menu, blanc sur gris) — `AppIcon.icns` est déjà généré et versionné dans ce dossier, pas besoin de relancer `IconGen.swift` sauf si tu veux changer l'icône.
 
@@ -31,7 +32,27 @@ cd "~/Downloads/tailscale/tailscale-nas-watchdog"
 bash install.sh
 ```
 
-Ça installe tout, désactive l'ancien LaunchAgent (`fr.arnaud.mount-tm-nas`), compile l'app, et charge les deux nouveaux LaunchAgents. Aucun mot de passe admin nécessaire.
+`install.sh` fait, dans l'ordre :
+
+1. Installe **Homebrew** s'il manque (peut demander ton mot de passe pour créer `/opt/homebrew`), puis **`jq`** via `brew install jq` s'il manque.
+2. Copie `watchdog.sh` en espace utilisateur.
+3. Sème `hosts.json` avec `default-hosts.json` si absent (ne touche jamais un `hosts.json` existant).
+4. Désactive l'ancien LaunchAgent (`fr.arnaud.mount-tm-nas`), installe le nouveau (`fr.arnaud.tailscale-nas-watchdog`).
+5. Appelle `build.sh` (compile + signe ad-hoc l'app — voir vérifications ci-dessous, échoue proprement si Xcode CLT manque).
+6. Installe et charge le LaunchAgent de l'app barre de menu.
+
+Aucun `sudo` explicite dans le script ; le seul mot de passe éventuellement demandé vient de l'installateur Homebrew lui-même s'il n'est pas déjà présent.
+
+### Sur une machine neuve
+
+Ce qui est **automatisé** par `install.sh`/`build.sh` : Homebrew, `jq`, templating des `.plist`, détection d'architecture pour la compilation, vérification des Xcode CLT.
+
+Ce qui reste **manuel**, dans cet ordre :
+
+1. Installer **Tailscale.app** et t'authentifier (`tailscale up`).
+2. Accepter l'installation des **Xcode Command Line Tools** si demandé (`xcode-select --install`, popup GUI).
+3. Monter chaque partage SMB une première fois à la main pour que macOS enregistre le mot de passe dans le Trousseau (voir Prérequis ci-dessus).
+4. Lancer `bash install.sh`.
 
 ## Utilisation au quotidien
 
@@ -56,7 +77,7 @@ Cliquer "Quitter" dans le menu ferme vraiment l'app (ça n'affecte ni les montag
 
 ## Notes de build (si tu recompiles après une mise à jour de macOS)
 
-`build.sh` compile avec `-target arm64-apple-macosx11.0` et signe le bundle en ad-hoc (`codesign --force --deep --sign -`). Le `-target` explicite est nécessaire : sans lui, `swiftc` embarque par défaut la version du SDK installé (28.0 sur cette machine, plus récente que l'OS réellement installé en 27.0), ce qui fait planter le lancement via Finder avec *"Impossible d'utiliser cette version de l'application avec cette version de macOS"* — le lancement direct (`launchctl`) contournait ce contrôle, mais pas Finder. Fixer `-target` à 11.0 élimine le problème avec une large marge, pas besoin d'ajuster à chaque mise à jour de macOS.
+`build.sh` compile avec `-target <arch>-apple-macosx11.0` (`<arch>` = `arm64` ou `x86_64` selon `uname -m`) et signe le bundle en ad-hoc (`codesign --force --deep --sign -`). Le `-target` explicite est nécessaire : sans lui, `swiftc` embarque par défaut la version du SDK installé (28.0 sur cette machine, plus récente que l'OS réellement installé en 27.0), ce qui fait planter le lancement via Finder avec *"Impossible d'utiliser cette version de l'application avec cette version de macOS"* — le lancement direct (`launchctl`) contournait ce contrôle, mais pas Finder. Fixer la version macOS du `-target` à 11.0 élimine le problème avec une large marge, pas besoin d'ajuster à chaque mise à jour de macOS.
 
 Sans signature ad-hoc, Finder refuse carrément de lancer l'app (icône barrée d'un signe interdit), même sans flag de quarantine — Gatekeeper sur cette bêta semble plus strict que d'habitude pour les apps locales non signées.
 
