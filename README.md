@@ -138,7 +138,7 @@ Les volumes déjà montés et les identifiants dans le Trousseau ne sont pas tou
 
 - Toutes les **60 secondes**, le watchdog vérifie Tailscale + chaque serveur listé dans `hosts.json`.
 - Si Tailscale n'est pas `Running` et qu'aucune ré-authentification n'est requise → tentative de reconnexion (`tailscale up`).
-- Si un serveur est joignable mais pas monté → montage.
+- Si un serveur est joignable mais pas monté → montage, puis création d'un fichier `.metadata_never_index` à la racine du volume pour désactiver l'indexation Spotlight dessus (pas besoin de `mdutil`/sudo — utile car Spotlight n'a rien à faire sur des partages réseau, et surtout pas sur celui utilisé pour Time Machine).
 - Si un partage est monté mais que le serveur n'est plus joignable → démontage forcé (montage fantôme nettoyé), puis remontage dès que possible.
 - Log dans `~/Library/Logs/TailscaleNAS/watchdog.log`, réinitialisé à chaque redémarrage du Mac (détecté via `sysctl kern.boottime`, comparé à `~/Library/Application Support/TailscaleNAS/.last_boot` — donc un simple `launchctl kickstart`/reinstall ne le vide pas, seul un vrai reboot le fait), et sinon rotation automatique au-delà de ~5 Mo dans la même session.
 - Si une sauvegarde Time Machine est en cours (`tmutil status`), un `caffeinate -s -i` est maintenu actif pour bloquer la veille système ; son PID est suivi dans `~/Library/Application Support/TailscaleNAS/.caffeinate.pid` et il est arrêté dès que la sauvegarde se termine.
