@@ -220,6 +220,16 @@ while IFS= read -r host_json; do
     HOST_STATES+=("$host_state")
 done < <(jq -c '.[]' "$HOSTS_JSON")
 
+# --- disable Spotlight indexing on every mounted SMB share, not just the ones
+# tracked in hosts.json (e.g. shares reached by browsing in Finder, like a
+# "Films" share sitting next to the homes share) ---
+while IFS= read -r vol; do
+    [ -n "$vol" ] || continue
+    if [ ! -f "$vol/.metadata_never_index" ]; then
+        touch "$vol/.metadata_never_index" 2>/dev/null && log "Spotlight disabled on untracked share $vol"
+    fi
+done < <(mount | grep -E ' \(smbfs' | sed -E 's#.* on (/Volumes/[^ ]+) \(.*#\1#')
+
 hosts_array=$(printf '%s\n' "${HOST_STATES[@]}" | jq -s '.')
 
 jq -n \
