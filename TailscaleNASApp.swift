@@ -279,6 +279,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return item
     }
 
+    // watchdog.sh also tries this, but a plain launchd background process
+    // can't be granted the "Network Volumes" TCC permission (macOS has no way
+    // to prompt a headless process for consent, so the write is silently
+    // denied). This GUI app has an on-screen presence, so macOS can show the
+    // consent dialog here and remember the choice. Re-checked live on every
+    // refresh rather than trusting watchdog.sh's (possibly stale) JSON value.
+    private func ensureSpotlightDisabled(at mountPoint: String) -> Bool {
+        let flagPath = mountPoint + "/.metadata_never_index"
+        if FileManager.default.fileExists(atPath: flagPath) {
+            return true
+        }
+        return FileManager.default.createFile(atPath: flagPath, contents: Data())
+    }
+
     private func buildMenu(state: AppState) {
         let menu = NSMenu()
 
@@ -305,7 +319,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } else {
                 statusText = "injoignable ✗"
             }
-            if host.mounted && host.spotlightDisabled {
+            if host.mounted && ensureSpotlightDisabled(at: host.mountPoint) {
                 statusText += " · Spotlight désactivé"
             }
             menu.addItem(disabledItem("\(host.name) — \(statusText)"))
@@ -327,8 +341,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menu.addItem(disabledItem("Autres partages montés (non suivis)"))
             for mount in state.untrackedMounts {
                 var statusText = "monté"
-                if mount.spotlightDisabled {
-                    statusText += " · Spotlight désactivé"
+                if ensureSpotlightDisabled(at: mount.mountPoint) {
+                    statusText += " · index off"
                 }
                 menu.addItem(disabledItem("\(mount.name) — \(statusText)"))
 
