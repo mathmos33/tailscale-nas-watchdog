@@ -178,6 +178,9 @@ while IFS= read -r host_json; do
             mounted=yes
             mount_point=$(echo "$mount_line" | sed -E 's#.* on (/Volumes/[^ ]+) \(.*#\1#')
             result=ok
+            # Spotlight indexing a network share wastes CPU/bandwidth and can
+            # interfere with Time Machine; this flag is honored without mdutil/sudo.
+            touch "$mount_point/.metadata_never_index" 2>/dev/null
         else
             result=failed
         fi
