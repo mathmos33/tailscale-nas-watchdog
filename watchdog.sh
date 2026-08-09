@@ -178,9 +178,6 @@ while IFS= read -r host_json; do
             mounted=yes
             mount_point=$(echo "$mount_line" | sed -E 's#.* on (/Volumes/[^ ]+) \(.*#\1#')
             result=ok
-            # Spotlight indexing a network share wastes CPU/bandwidth and can
-            # interfere with Time Machine; this flag is honored without mdutil/sudo.
-            touch "$mount_point/.metadata_never_index" 2>/dev/null
         else
             result=failed
         fi
@@ -196,16 +193,30 @@ while IFS= read -r host_json; do
         mount_point=""
     fi
 
-    log "host=$name backend=$BACKEND_STATE reachable=$reachable mounted=$mounted action=$action result=$result"
+    # Spotlight indexing a network share wastes CPU/bandwidth and can interfere
+    # with Time Machine; this flag is honored without mdutil/sudo. Checked every
+    # cycle (not just on fresh mounts) so shares already mounted before this
+    # feature existed get retrofitted too.
+    spotlight_disabled=no
+    if [ "$mounted" = "yes" ] && [ -n "$mount_point" ]; then
+        if [ ! -f "$mount_point/.metadata_never_index" ]; then
+            touch "$mount_point/.metadata_never_index" 2>/dev/null
+        fi
+        [ -f "$mount_point/.metadata_never_index" ] && spotlight_disabled=yes
+    fi
+
+    log "host=$name backend=$BACKEND_STATE reachable=$reachable mounted=$mounted action=$action result=$result spotlightDisabled=$spotlight_disabled"
 
     host_state=$(jq -n \
         --arg id "$id" --arg name "$name" --arg tsHost "$ts_host" \
         --arg path "$path" --arg username "$username" \
         --arg reachable "$reachable" --arg mounted "$mounted" \
         --arg mountPoint "$mount_point" --arg action "$action" --arg result "$result" \
+        --arg spotlightDisabled "$spotlight_disabled" \
         '{id:$id, name:$name, tsHost:$tsHost, path:$path, username:$username,
           reachable:($reachable=="yes"), mounted:($mounted=="yes"),
-          mountPoint:$mountPoint, lastAction:$action, lastResult:$result}')
+          mountPoint:$mountPoint, lastAction:$action, lastResult:$result,
+          spotlightDisabled:($spotlightDisabled=="yes")}')
     HOST_STATES+=("$host_state")
 done < <(jq -c '.[]' "$HOSTS_JSON")
 

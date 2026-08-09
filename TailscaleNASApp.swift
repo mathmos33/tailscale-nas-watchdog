@@ -29,6 +29,7 @@ struct HostState: Codable {
     let mountPoint: String
     let lastAction: String
     let lastResult: String
+    let spotlightDisabled: Bool
 }
 
 struct AppState: Codable {
@@ -289,13 +290,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         for host in state.hosts {
-            let statusText: String
+            var statusText: String
             if host.mounted {
                 statusText = "monté ✓"
             } else if host.reachable {
                 statusText = "joignable, non monté"
             } else {
                 statusText = "injoignable ✗"
+            }
+            if host.mounted && host.spotlightDisabled {
+                statusText += " · Spotlight désactivé"
             }
             menu.addItem(disabledItem("\(host.name) — \(statusText)"))
 
