@@ -32,18 +32,25 @@ struct HostState: Codable {
     let spotlightDisabled: Bool
 }
 
+struct UntrackedMount: Codable {
+    let name: String
+    let mountPoint: String
+    let spotlightDisabled: Bool
+}
+
 struct AppState: Codable {
     let backendState: String
     let authPending: Bool
     let lastCheck: String
     let timeMachineRunning: Bool
     let hosts: [HostState]
+    let untrackedMounts: [UntrackedMount]
 }
 
 func loadAppState(from url: URL) -> AppState {
     guard let data = try? Data(contentsOf: url),
           let state = try? JSONDecoder().decode(AppState.self, from: data) else {
-        return AppState(backendState: "Unknown", authPending: false, lastCheck: "", timeMachineRunning: false, hosts: [])
+        return AppState(backendState: "Unknown", authPending: false, lastCheck: "", timeMachineRunning: false, hosts: [], untrackedMounts: [])
     }
     return state
 }
@@ -312,6 +319,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let mountItem = NSMenuItem(title: "  (Re)monter \(host.name)", action: #selector(checkNow), keyEquivalent: "")
                 mountItem.target = self
                 menu.addItem(mountItem)
+            }
+        }
+
+        if !state.untrackedMounts.isEmpty {
+            menu.addItem(.separator())
+            menu.addItem(disabledItem("Autres partages montés (non suivis)"))
+            for mount in state.untrackedMounts {
+                var statusText = "monté"
+                if mount.spotlightDisabled {
+                    statusText += " · Spotlight désactivé"
+                }
+                menu.addItem(disabledItem("\(mount.name) — \(statusText)"))
+
+                let openItem = NSMenuItem(title: "  Ouvrir dans le Finder", action: #selector(openInFinder(_:)), keyEquivalent: "")
+                openItem.target = self
+                openItem.representedObject = mount.mountPoint
+                menu.addItem(openItem)
             }
         }
 

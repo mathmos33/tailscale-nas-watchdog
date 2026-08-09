@@ -134,6 +134,7 @@ fi
 # --- per-host reconciliation ---
 MOUNT_TABLE=$(mount)
 HOST_STATES=()
+TRACKED_MOUNTPOINTS=()
 
 while IFS= read -r host_json; do
     id=$(echo "$host_json" | jq -r '.id')
@@ -203,6 +204,7 @@ while IFS= read -r host_json; do
             touch "$mount_point/.metadata_never_index" 2>/dev/null
         fi
         [ -f "$mount_point/.metadata_never_index" ] && spotlight_disabled=yes
+        TRACKED_MOUNTPOINTS+=("$mount_point")
     fi
 
     log "host=$name backend=$BACKEND_STATE reachable=$reachable mounted=$mounted action=$action result=$result spotlightDisabled=$spotlight_disabled"
@@ -222,19 +224,40 @@ done < <(jq -c '.[]' "$HOSTS_JSON")
 
 # --- disable Spotlight indexing on every mounted SMB share, not just the ones
 # tracked in hosts.json (e.g. shares reached by browsing in Finder, like a
-# "Films" share sitting next to the homes share) ---
+# "Films" share sitting next to the homes share), and report the untracked
+# ones separately so the menu bar app can list them too ---
+UNTRACKED_STATES=()
 while IFS= read -r vol; do
     [ -n "$vol" ] || continue
+
+    is_tracked=no
+    for tracked in "${TRACKED_MOUNTPOINTS[@]}"; do
+        [ "$tracked" = "$vol" ] && is_tracked=yes && break
+    done
+    [ "$is_tracked" = "yes" ] && continue
+
     if [ ! -f "$vol/.metadata_never_index" ]; then
         touch "$vol/.metadata_never_index" 2>/dev/null && log "Spotlight disabled on untracked share $vol"
     fi
+    vol_spotlight=no
+    [ -f "$vol/.metadata_never_index" ] && vol_spotlight=yes
+
+    untracked_state=$(jq -n \
+        --arg name "$(basename "$vol")" --arg mountPoint "$vol" --arg spotlightDisabled "$vol_spotlight" \
+        '{name:$name, mountPoint:$mountPoint, spotlightDisabled:($spotlightDisabled=="yes")}')
+    UNTRACKED_STATES+=("$untracked_state")
 done < <(mount | grep -E ' \(smbfs' | sed -E 's#.* on (/Volumes/[^ ]+) \(.*#\1#')
 
 hosts_array=$(printf '%s\n' "${HOST_STATES[@]}" | jq -s '.')
+if [ ${#UNTRACKED_STATES[@]} -gt 0 ]; then
+    untracked_array=$(printf '%s\n' "${UNTRACKED_STATES[@]}" | jq -s '.')
+else
+    untracked_array='[]'
+fi
 
 jq -n \
     --arg backend "$BACKEND_STATE" --arg authUrl "$AUTH_URL" --arg ts "$(date -Iseconds)" \
     --argjson tm "$([ "$TM_RUNNING" = "yes" ] && echo true || echo false)" \
-    --argjson hosts "$hosts_array" \
-    '{backendState:$backend, authPending:($authUrl!=""), lastCheck:$ts, timeMachineRunning:$tm, hosts:$hosts}' \
+    --argjson hosts "$hosts_array" --argjson untracked "$untracked_array" \
+    '{backendState:$backend, authPending:($authUrl!=""), lastCheck:$ts, timeMachineRunning:$tm, hosts:$hosts, untrackedMounts:$untracked}' \
     >"$STATE_JSON.tmp" && mv "$STATE_JSON.tmp" "$STATE_JSON"
