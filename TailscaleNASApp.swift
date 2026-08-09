@@ -211,6 +211,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var timer: Timer?
     private var preferencesController: PreferencesWindowController?
+    private var spotlightConfirmedMountPoints: Set<String> = []
 
     private let appSupportDir = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Application Support/TailscaleNAS")
@@ -283,14 +284,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // can't be granted the "Network Volumes" TCC permission (macOS has no way
     // to prompt a headless process for consent, so the write is silently
     // denied). This GUI app has an on-screen presence, so macOS can show the
-    // consent dialog here and remember the choice. Re-checked live on every
-    // refresh rather than trusting watchdog.sh's (possibly stale) JSON value.
+    // consent dialog here and remember the choice. Once confirmed present for
+    // a given mount point, skip the stat/create call on later refreshes: it's
+    // a synchronous network round-trip over SMB, and doing it every 5s on the
+    // main thread (once per mount, tracked + untracked) was enough SMB
+    // traffic to introduce a noticeable system-wide delay before mouse clicks
+    // registered, not just in this app.
     private func ensureSpotlightDisabled(at mountPoint: String) -> Bool {
-        let flagPath = mountPoint + "/.metadata_never_index"
-        if FileManager.default.fileExists(atPath: flagPath) {
+        if spotlightConfirmedMountPoints.contains(mountPoint) {
             return true
         }
-        return FileManager.default.createFile(atPath: flagPath, contents: Data())
+        let flagPath = mountPoint + "/.metadata_never_index"
+        let disabled = FileManager.default.fileExists(atPath: flagPath)
+            || FileManager.default.createFile(atPath: flagPath, contents: Data())
+        if disabled {
+            spotlightConfirmedMountPoints.insert(mountPoint)
+        }
+        return disabled
     }
 
     private func buildMenu(state: AppState) {
