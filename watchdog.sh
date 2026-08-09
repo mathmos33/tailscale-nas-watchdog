@@ -161,7 +161,7 @@ while IFS= read -r host_json; do
     mount_line=$(find_mount_line "$MOUNT_TABLE" "$src_pattern" "$src_pattern_fallback")
     if [ -n "$mount_line" ]; then
         mounted=yes
-        mount_point=$(echo "$mount_line" | sed -E 's#.* on (/Volumes/[^ ]+) \(.*#\1#')
+        mount_point=$(echo "$mount_line" | sed -E 's#.* on (/Volumes/.*) \([^()]*\)$#\1#')
     else
         mounted=no
         mount_point=""
@@ -177,7 +177,7 @@ while IFS= read -r host_json; do
         mount_line=$(find_mount_line "$MOUNT_TABLE" "$src_pattern" "$src_pattern_fallback")
         if [ -n "$mount_line" ]; then
             mounted=yes
-            mount_point=$(echo "$mount_line" | sed -E 's#.* on (/Volumes/[^ ]+) \(.*#\1#')
+            mount_point=$(echo "$mount_line" | sed -E 's#.* on (/Volumes/.*) \([^()]*\)$#\1#')
             result=ok
         else
             result=failed
@@ -246,7 +246,7 @@ while IFS= read -r vol; do
         --arg name "$(basename "$vol")" --arg mountPoint "$vol" --arg spotlightDisabled "$vol_spotlight" \
         '{name:$name, mountPoint:$mountPoint, spotlightDisabled:($spotlightDisabled=="yes")}')
     UNTRACKED_STATES+=("$untracked_state")
-done < <(mount | grep -E ' \(smbfs' | sed -E 's#.* on (/Volumes/[^ ]+) \(.*#\1#')
+done < <(mount | grep -E ' \(smbfs' | sed -E 's#.* on (/Volumes/.*) \([^()]*\)$#\1#')
 
 hosts_array=$(printf '%s\n' "${HOST_STATES[@]}" | jq -s '.')
 if [ ${#UNTRACKED_STATES[@]} -gt 0 ]; then
