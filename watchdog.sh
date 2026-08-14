@@ -12,6 +12,7 @@ LOG_FILE="$LOG_DIR/watchdog.log"
 LAST_WARN_FILE="$APP_SUPPORT/.last_auth_warning"
 CAFFEINATE_PID_FILE="$APP_SUPPORT/.caffeinate.pid"
 LAST_BOOT_FILE="$APP_SUPPORT/.last_boot"
+SPOTLIGHT_CACHE_FILE="$APP_SUPPORT/.spotlight_confirmed"
 AUTH_WARN_INTERVAL=600
 LOG_MAX_BYTES=$((5 * 1024 * 1024))
 
@@ -33,12 +34,27 @@ find_mount_line() {
     echo "$line"
 }
 
+# Once a mount point's .metadata_never_index flag has been confirmed present
+# this boot session, skip re-checking it: the check is a stat/touch over SMB,
+# and doing it on every mounted share (tracked + untracked) every 60s was
+# enough contention on the shared smbfs session to stall Finder for a couple
+# seconds system-wide (same class of bug fixed for the menu bar app in
+# 2492fc8, just at a lower frequency here).
+is_spotlight_confirmed() {
+    grep -Fxq "$1" "$SPOTLIGHT_CACHE_FILE" 2>/dev/null
+}
+
+mark_spotlight_confirmed() {
+    is_spotlight_confirmed "$1" || echo "$1" >>"$SPOTLIGHT_CACHE_FILE"
+}
+
 # --- reset log on new boot session (RunAtLoad fires on every launchctl
 # load/kickstart too, so we compare against the kernel's actual boot time
 # rather than assuming "we just ran" means "the Mac just started") ---
 current_boot=$(sysctl -n kern.boottime 2>/dev/null | grep -oE '[0-9]+' | head -1)
 if [ -n "$current_boot" ] && [ "$(cat "$LAST_BOOT_FILE" 2>/dev/null)" != "$current_boot" ]; then
     : >"$LOG_FILE"
+    : >"$SPOTLIGHT_CACHE_FILE"
     echo "$current_boot" >"$LAST_BOOT_FILE"
     log "Log reset: new boot session (kern.boottime=$current_boot)"
 fi
@@ -200,10 +216,17 @@ while IFS= read -r host_json; do
     # feature existed get retrofitted too.
     spotlight_disabled=no
     if [ "$mounted" = "yes" ] && [ -n "$mount_point" ]; then
-        if [ ! -f "$mount_point/.metadata_never_index" ]; then
-            touch "$mount_point/.metadata_never_index" 2>/dev/null
+        if is_spotlight_confirmed "$mount_point"; then
+            spotlight_disabled=yes
+        else
+            if [ ! -f "$mount_point/.metadata_never_index" ]; then
+                touch "$mount_point/.metadata_never_index" 2>/dev/null
+            fi
+            if [ -f "$mount_point/.metadata_never_index" ]; then
+                spotlight_disabled=yes
+                mark_spotlight_confirmed "$mount_point"
+            fi
         fi
-        [ -f "$mount_point/.metadata_never_index" ] && spotlight_disabled=yes
         TRACKED_MOUNTPOINTS+=("$mount_point")
     fi
 
@@ -236,11 +259,18 @@ while IFS= read -r vol; do
     done
     [ "$is_tracked" = "yes" ] && continue
 
-    if [ ! -f "$vol/.metadata_never_index" ]; then
-        touch "$vol/.metadata_never_index" 2>/dev/null && log "Spotlight disabled on untracked share $vol"
-    fi
     vol_spotlight=no
-    [ -f "$vol/.metadata_never_index" ] && vol_spotlight=yes
+    if is_spotlight_confirmed "$vol"; then
+        vol_spotlight=yes
+    else
+        if [ ! -f "$vol/.metadata_never_index" ]; then
+            touch "$vol/.metadata_never_index" 2>/dev/null && log "Spotlight disabled on untracked share $vol"
+        fi
+        if [ -f "$vol/.metadata_never_index" ]; then
+            vol_spotlight=yes
+            mark_spotlight_confirmed "$vol"
+        fi
+    fi
 
     untracked_state=$(jq -n \
         --arg name "$(basename "$vol")" --arg mountPoint "$vol" --arg spotlightDisabled "$vol_spotlight" \
