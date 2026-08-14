@@ -39,7 +39,7 @@ bash install.sh
 1. Installe **Homebrew** s'il manque (peut demander ton mot de passe pour créer `/opt/homebrew`), puis **`jq`** via `brew install jq` s'il manque.
 2. Copie `watchdog.sh` en espace utilisateur.
 3. Sème `hosts.json` avec `default-hosts.json` si absent (ne touche jamais un `hosts.json` existant).
-4. Désactive les anciens LaunchAgents (`fr.arnaud.mount-tm-nas` et, pour une mise à jour depuis une version antérieure, `fr.arnaud.tailscale-nas-watchdog`/`fr.arnaud.tailscale-nas-menubar`), installe le nouveau (`com.tailscale-nas-watchdog.watchdog`).
+4. Installe le LaunchAgent du watchdog (`com.tailscale-nas-watchdog.watchdog`).
 5. Appelle `build.sh` (compile + signe ad-hoc l'app — voir vérifications ci-dessous, échoue proprement si Xcode CLT manque).
 6. Installe et charge le LaunchAgent de l'app barre de menu.
 
@@ -130,7 +130,7 @@ Si `⚠︎ Ré-authentification Tailscale requise` apparaît dans le menu, c'est
 bash uninstall.sh
 ```
 
-Décharge et supprime les deux LaunchAgents (+ les anciens `fr.arnaud.*` s'ils traînent encore), supprime l'app et les logs. Par défaut, **`hosts.json` est conservé** (au cas où tu réinstalles plus tard) ; pour tout purger y compris ta config de serveurs :
+Décharge et supprime les deux LaunchAgents, supprime l'app et les logs. Par défaut, **`hosts.json` est conservé** (au cas où tu réinstalles plus tard) ; pour tout purger y compris ta config de serveurs :
 
 ```bash
 bash uninstall.sh --purge

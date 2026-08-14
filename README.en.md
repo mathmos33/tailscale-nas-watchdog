@@ -39,7 +39,7 @@ bash install.sh
 1. Installs **Homebrew** if missing (may ask for your password to create `/opt/homebrew`), then **`jq`** via `brew install jq` if missing.
 2. Copies `watchdog.sh` into user space.
 3. Seeds `hosts.json` with `default-hosts.json` if absent (never touches an existing `hosts.json`).
-4. Disables old LaunchAgents (`fr.arnaud.mount-tm-nas` and, when upgrading from an earlier version, `fr.arnaud.tailscale-nas-watchdog`/`fr.arnaud.tailscale-nas-menubar`), installs the new one (`com.tailscale-nas-watchdog.watchdog`).
+4. Installs the watchdog's LaunchAgent (`com.tailscale-nas-watchdog.watchdog`).
 5. Calls `build.sh` (compiles + signs the app — see checks below, fails cleanly if Xcode CLT is missing).
 6. Installs and loads the menu bar app's LaunchAgent.
 
@@ -130,7 +130,7 @@ If `⚠︎ Ré-authentification Tailscale requise` (Tailscale re-authentication 
 bash uninstall.sh
 ```
 
-Unloads and removes both LaunchAgents (+ the old `fr.arnaud.*` ones if still around), removes the app and the logs. By default, **`hosts.json` is kept** (in case you reinstall later); to wipe everything including your server config:
+Unloads and removes both LaunchAgents, removes the app and the logs. By default, **`hosts.json` is kept** (in case you reinstall later); to wipe everything including your server config:
 
 ```bash
 bash uninstall.sh --purge

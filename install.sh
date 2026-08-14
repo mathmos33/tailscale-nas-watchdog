@@ -36,12 +36,6 @@ else
     echo "==> hosts.json already exists, leaving it untouched"
 fi
 
-echo "==> Retiring old LaunchAgents (fr.arnaud.*), if present"
-for old in fr.arnaud.mount-tm-nas fr.arnaud.tailscale-nas-watchdog fr.arnaud.tailscale-nas-menubar; do
-    launchctl unload "$LAUNCH_AGENTS/$old.plist" 2>/dev/null || true
-    rm -f "$LAUNCH_AGENTS/$old.plist"
-done
-
 echo "==> Installing watchdog LaunchAgent"
 sed "s#__HOME__#$HOME#g" "$DIR/com.tailscale-nas-watchdog.watchdog.plist" >"$LAUNCH_AGENTS/com.tailscale-nas-watchdog.watchdog.plist"
 launchctl unload "$LAUNCH_AGENTS/com.tailscale-nas-watchdog.watchdog.plist" 2>/dev/null || true

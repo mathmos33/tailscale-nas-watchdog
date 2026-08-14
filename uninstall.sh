@@ -14,8 +14,7 @@ echo "==> Stopping any running instance of the menu bar app"
 pkill -f "TailscaleNAS.app/Contents/MacOS/TailscaleNAS" 2>/dev/null || true
 
 echo "==> Unloading and removing LaunchAgents"
-for label in com.tailscale-nas-watchdog.watchdog com.tailscale-nas-watchdog.menubar \
-             fr.arnaud.tailscale-nas-watchdog fr.arnaud.tailscale-nas-menubar fr.arnaud.mount-tm-nas; do
+for label in com.tailscale-nas-watchdog.watchdog com.tailscale-nas-watchdog.menubar; do
     launchctl unload "$LAUNCH_AGENTS/$label.plist" 2>/dev/null || true
     rm -f "$LAUNCH_AGENTS/$label.plist"
 done
@@ -33,7 +32,7 @@ else
     echo "==> Removing watchdog.sh binary and cached state, keeping hosts.json"
     rm -f "$APP_SUPPORT/bin/watchdog.sh"
     rmdir "$APP_SUPPORT/bin" 2>/dev/null || true
-    rm -f "$APP_SUPPORT/state.json" "$APP_SUPPORT/.last_auth_warning" "$APP_SUPPORT/.caffeinate.pid" "$APP_SUPPORT/.last_boot"
+    rm -f "$APP_SUPPORT/state.json" "$APP_SUPPORT/.last_auth_warning" "$APP_SUPPORT/.caffeinate.pid" "$APP_SUPPORT/.last_boot" "$APP_SUPPORT/.spotlight_confirmed"
     echo "    (hosts.json kept at: $APP_SUPPORT/hosts.json — rerun with --purge to remove it too)"
 fi
 
