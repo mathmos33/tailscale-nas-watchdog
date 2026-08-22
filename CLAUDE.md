@@ -46,6 +46,38 @@ Repo à jour avec `origin/main`. Correctifs livrés :
   (+ ajout de `README.en.md`, traduction anglaise à garder synchronisée) ;
   `HANDOFF.md` supprimé (doublon de ce fichier).
 
+## État au 22 août
+
+Install testée de zéro sur un MacBook Air (Brigitte, Sonoma 14.8, Intel).
+Correctifs livrés :
+- `9d2b727` — deux bugs distincts qui bloquaient l'install sur cette machine :
+  - **CLT 15.3 casse toute compilation** : bug de packaging Apple connu
+    (`redefinition of module 'SwiftBridging'`, modulemap dupliqué), et son
+    `swiftc` (Swift 5.10) est de toute façon trop vieux pour parser le SDK
+    d'une install CLT 16.2 partielle (`unknown attribute '_extern'`). `build.sh`
+    vérifie maintenant `swiftc --version` et s'arrête avec un message clair
+    (réinstall CLT 16.2 via `softwareupdate`, pas de sudo caché dans
+    `install.sh` — cf. discussion : on a délibérément gardé le principe
+    "sans sudo" plutôt que d'automatiser l'install des CLT, qui en plus s'est
+    montrée peu fiable : la mise à jour auto de macOS a réinstallé la 15.3
+    par-dessus la 16.2 12 minutes après coup, en tâche de fond).
+  - **`jq` invisible pour le watchdog LaunchAgent** : `command -v jq` marche
+    en shell interactif mais `launchd` tourne avec un PATH minimal
+    (`/usr/bin:/bin:/usr/sbin:/sbin`), sans les préfixes Homebrew — le
+    watchdog échouait à chaque cycle malgré `brew install jq` réussi.
+    `TAILSCALE_BIN` avait déjà ce traitement (chemins candidats explicites),
+    pas `jq`. Fix : `export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"`
+    en tête de `watchdog.sh`.
+- `520ee73` — l'app menu bar (`LSUIElement`/`.accessory`) n'avait jamais de
+  menu "Édition" : ⌘C/⌘V/⌘X/⌘A ne marchaient pas dans les champs texte de
+  Préférences (AppKit ne route ces raccourcis que via un vrai menu Édition
+  avec Cut/Copy/Paste/Select All liés aux actions standard). Fix : menu
+  construit et assigné à `NSApp.mainMenu` dans `applicationDidFinishLaunching`.
+  Vérifié via Accessibility (`osascript`/System Events) que macOS reconnaît
+  bien le menu (ajout auto des items système type "Writing Tools").
+- README.md / README.en.md mis à jour pour le pré-requis CLT 16.2/Swift 6+
+  (synchronisés).
+
 ## Point ouvert : montage `homes/lesrybeau.ts` sur l'iMac
 
 Sur l'iMac, `lesrybeau.ts` apparaît deux fois dans le menu : le sous-dossier
