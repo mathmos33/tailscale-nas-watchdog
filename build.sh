@@ -12,6 +12,27 @@ if ! command -v swiftc &>/dev/null; then
     exit 1
 fi
 
+# CLT 15.3 ships a broken module.modulemap (duplicate "module SwiftBridging"
+# definition) that breaks any compile, and its swiftc is Swift 5.10, too old
+# to parse the @_extern-based Swift.swiftmodule from newer SDKs if a partial
+# upgrade leaves a mismatched SDK/compiler pair. Require Swift 6+ to catch
+# both failure modes with a clear message instead of a wall of module/linker
+# errors.
+SWIFT_VERSION_MAJOR=$(swiftc --version 2>&1 | grep -oE 'Swift version [0-9]+' | grep -oE '[0-9]+' | head -1)
+if [[ -z "$SWIFT_VERSION_MAJOR" || "$SWIFT_VERSION_MAJOR" -lt 6 ]]; then
+    echo "==> ERROR: swiftc is too old ($(swiftc --version 2>&1 | head -1))."
+    echo "    Command Line Tools 15.3 has a known bug (duplicate SwiftBridging"
+    echo "    module) and ships Swift 5.10, which can't build this project."
+    echo "    Install Command Line Tools 16.2 or newer:"
+    echo "      sudo rm -rf /Library/Developer/CommandLineTools"
+    echo "      sudo softwareupdate --install \"Command Line Tools for Xcode-16.2\" --agree-to-license"
+    echo "    Then verify with: swiftc --version  (must show Swift 6.x)"
+    echo "    If macOS's background updater silently reverts this, disable"
+    echo "    automatic updates in System Settings > General > Software Update"
+    echo "    before reinstalling."
+    exit 1
+fi
+
 case "$(uname -m)" in
     arm64)  SWIFT_TARGET="arm64-apple-macosx11.0" ;;
     x86_64) SWIFT_TARGET="x86_64-apple-macosx11.0" ;;

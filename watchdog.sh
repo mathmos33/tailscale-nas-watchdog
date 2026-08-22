@@ -18,6 +18,12 @@ LOG_MAX_BYTES=$((5 * 1024 * 1024))
 
 mkdir -p "$APP_SUPPORT" "$LOG_DIR"
 
+# launchd runs jobs with a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin) that
+# doesn't include Homebrew, even though jq is found fine in an interactive
+# shell — so add both Homebrew prefixes up front rather than resolving jq's
+# path explicitly at every one of its many call sites below.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 log() {
     echo "$(date -Iseconds) $*" >>"$LOG_FILE"
 }
